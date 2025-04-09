@@ -1,4 +1,5 @@
 import React from 'react';
+<<<<<<< HEAD
 import { Link } from 'react-router-dom';
 
 export default function Home() {
@@ -29,3 +30,8 @@ export default function Home() {
     </div>
   );
 }
+=======
+export default function Home() {
+  return <div className='p-10 text-center text-2xl'>Welcome to Oceanic VR Dive</div>;
+}
+>>>>>>> ce9ef6e7de67e41e2104aaeea3cdada05602fff4

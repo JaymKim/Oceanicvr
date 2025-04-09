@@ -1,3 +1,4 @@
+// ✅ Signup.jsx - 이메일 인증 포함 + 카카오 주소 API 적용 (생년월일 드롭다운 포함)
 import React, { useState, useEffect } from 'react';
 import { auth } from '../firebase';
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
@@ -127,18 +128,16 @@ export default function Signup() {
                 return <option key={year} value={year}>{year}</option>;
               })}
             </select>
-
             <select value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} className="w-1/3 p-2 border rounded" required>
               <option value="">월</option>
               {Array.from({ length: 12 }, (_, i) => (
-                <option key={i+1} value={i+1}>{i+1}</option>
+                <option key={i + 1} value={i + 1}>{i + 1}</option>
               ))}
             </select>
-
             <select value={birthDay} onChange={(e) => setBirthDay(e.target.value)} className="w-1/3 p-2 border rounded" required>
               <option value="">일</option>
               {Array.from({ length: 31 }, (_, i) => (
-                <option key={i+1} value={i+1}>{i+1}</option>
+                <option key={i + 1} value={i + 1}>{i + 1}</option>
               ))}
             </select>
           </div>

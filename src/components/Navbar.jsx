@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { UserInfoContext } from '../contexts/UserInfoContext';
@@ -68,3 +69,9 @@ export default function Navbar() {
     </nav>
   );
 }
+=======
+import React from 'react';
+export default function Navbar() {
+  return <div className='p-4 bg-white shadow'>Navbar</div>;
+}
+>>>>>>> ce9ef6e7de67e41e2104aaeea3cdada05602fff4

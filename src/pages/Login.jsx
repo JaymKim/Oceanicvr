@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // src/pages/Login.jsx
 import React, { useState } from 'react';
 import { auth } from '../firebase';
@@ -33,3 +34,9 @@ export default function Login() {
     </div>
   );
 }
+=======
+import React from 'react';
+export default function Login() {
+  return <div className='p-10 text-center text-xl'>Login Page</div>;
+}
+>>>>>>> ce9ef6e7de67e41e2104aaeea3cdada05602fff4
