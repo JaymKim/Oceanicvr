@@ -1,7 +1,9 @@
-<<<<<<< HEAD
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-=======
-body { margin: 0; font-family: Arial, sans-serif; background: #f0f9ff; }
->>>>>>> ce9ef6e7de67e41e2104aaeea3cdada05602fff4
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f0f9ff;
+}
