@@ -3,13 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-<<<<<<< HEAD
     "browser-image-compression": "^2.0.2",
     "firebase": "^11.6.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "react-router-dom": "^6.0.0",
-    "react-scripts": "^5.0.1"
+    "react-router-dom": "^6.3.0",
+    "react-scripts": "5.0.1"
   },
   "devDependencies": {
     "autoprefixer": "^10.0.0",
@@ -18,20 +17,9 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build"
-=======
-    "firebase": "^9.0.0",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
-    "react-router-dom": "^6.3.0",
-    "react-scripts": "5.0.1"
-  },
-  "scripts": {
-    "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
->>>>>>> ce9ef6e7de67e41e2104aaeea3cdada05602fff4
   },
   "browserslist": {
     "production": [
