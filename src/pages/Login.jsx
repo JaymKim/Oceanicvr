@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // src/pages/Login.jsx
 import React, { useState } from 'react';
 import { auth } from '../firebase';
@@ -26,17 +25,30 @@ export default function Login() {
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-xl shadow-md">
       <h2 className="text-2xl font-bold text-center mb-6">로그인</h2>
       <form onSubmit={handleLogin} className="space-y-4">
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="이메일" className="w-full p-2 border rounded" required />
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호" className="w-full p-2 border rounded" required />
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="이메일"
+          className="w-full p-2 border rounded"
+          required
+        />
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="비밀번호"
+          className="w-full p-2 border rounded"
+          required
+        />
         {error && <p className="text-red-500 text-sm">{error}</p>}
-        <button type="submit" className="w-full bg-sky-500 text-white py-2 rounded">로그인</button>
+        <button
+          type="submit"
+          className="w-full bg-sky-500 text-white py-2 rounded"
+        >
+          로그인
+        </button>
       </form>
     </div>
   );
 }
-=======
-import React from 'react';
-export default function Login() {
-  return <div className='p-10 text-center text-xl'>Login Page</div>;
-}
->>>>>>> ce9ef6e7de67e41e2104aaeea3cdada05602fff4
