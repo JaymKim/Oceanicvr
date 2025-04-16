@@ -1,149 +1,133 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import imageCompression from 'browser-image-compression';
+import { useState, useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { UserInfoContext } from '../contexts/UserInfoContext';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 
-export default function Community() {
+export default function Navbar() {
   const { user, userData } = useContext(UserInfoContext);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [images, setImages] = useState([]);
-  const [previewUrls, setPreviewUrls] = useState([]);
-  const [posts, setPosts] = useState([]);
-  const db = getFirestore();
-  const storage = getStorage();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const postData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPosts(postData);
-    });
-    return () => unsubscribe();
-  }, []);
+  const [isSubMenuVisible, setIsSubMenuVisible] = useState(false); // 서브 메뉴 상태
 
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
-    setImages(files);
-
-    const urls = files.map(file => URL.createObjectURL(file));
-    setPreviewUrls(urls);
+  const handleLogout = async () => {
+    await signOut(auth);
+    navigate('/login');
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!user) return alert('로그인 후 작성하세요');
-    if (!title.trim() || !content.trim()) return alert('제목과 본문을 입력하세요');
-
-    const imageUrls = [];
-
-    for (const file of images) {
-      const compressed = await imageCompression(file, {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1024,
-        useWebWorker: true
-      });
-
-      const imageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
-      await uploadBytes(imageRef, compressed);
-      const url = await getDownloadURL(imageRef);
-      imageUrls.push(url);
-    }
-
-    await addDoc(collection(db, 'posts'), {
-      title,
-      content,
-      images: imageUrls,
-      email: user.email,
-      level: userData?.level || '일반',
-      createdAt: new Date()
-    });
-
-    setTitle('');
-    setContent('');
-    setImages([]);
-    setPreviewUrls([]);
-  };
-
-  const levelIcons = {
-    OpenWater: '🐠', Advance: '🐬', Rescue: '🛟', DiveMaster: '🧭',
-    Instructor: '🎓', Trainer: '👑', 일반: '👤',
+  const levelIcon = {
+    OpenWater: '🐠',
+    Advance: '🐬',
+    Rescue: '🛟',
+    DiveMaster: '🧭',
+    Instructor: '🎓',
+    Trainer: '👑',
+    일반: '👤',
   };
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 px-4">
-      <h1 className="text-2xl font-bold mb-6">📢 커뮤니티 게시판</h1>
+    <nav className="bg-white shadow-md px-6 py-4 flex justify-between items-center">
+      <Link to="/" className="text-2xl font-bold text-sky-600 flex items-center gap-2">
+        🌊 Oceanic VR Dive
+      </Link>
 
-      {user && (
-        <form onSubmit={handleSubmit} className="space-y-4 mb-10">
-          <input
-            type="text"
-            placeholder="제목을 입력하세요"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full p-2 border rounded-md"
-            required
-          />
-
-          <textarea
-            placeholder="본문을 작성하세요"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full p-3 border rounded-md"
-            rows={4}
-            required
-          />
-
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleImageChange}
-            className="block"
-          />
-
-          <div className="flex flex-wrap gap-2 mt-2">
-            {previewUrls.map((url, idx) => (
-              <img
-                key={idx}
-                src={url}
-                alt="preview"
-                className="w-24 h-24 object-cover rounded border"
-              />
-            ))}
-          </div>
-
-          <button
-            type="submit"
-            className="bg-sky-500 text-white px-4 py-2 rounded hover:bg-sky-600"
-          >
-            글 작성
-          </button>
-        </form>
-      )}
-
-      <div className="space-y-6">
-        {posts.map(post => (
-          <div key={post.id} className="bg-white p-4 rounded-md shadow">
-            <div className="text-sm text-gray-600 mb-2">
-              {levelIcons[post.level] || '👤'} {post.email}
+      <div className="flex gap-6 text-sm font-medium items-center">
+        {/* Community 메뉴 */}
+        <div
+          key="community"
+          className="relative"
+          onMouseEnter={() => setIsSubMenuVisible(true)} // 마우스 올리기
+          onMouseLeave={() => setIsSubMenuVisible(false)} // 마우스 떼기
+        >
+          <span className="hover:text-sky-500 text-gray-700 cursor-pointer">
+            Community
+          </span>
+          {isSubMenuVisible && (
+            <div
+              className="absolute left-0 top-full mt-2 bg-white shadow-lg rounded-md w-48 z-50"  // z-index 추가
+              style={{ zIndex: 1000 }}  // 서브 메뉴가 다른 요소들 위에 보이도록 설정
+            >
+              <Link to="/community/free" className="block px-4 py-2 text-gray-700 hover:bg-sky-100">
+                자유게시판
+              </Link>
+              <Link to="/community/tour" className="block px-4 py-2 text-gray-700 hover:bg-sky-100">
+                투어신청
+              </Link>
+              <Link to="/community/qna" className="block px-4 py-2 text-gray-700 hover:bg-sky-100">
+                Q & A
+              </Link>
             </div>
-            <h3 className="text-lg font-bold mb-1">{post.title}</h3>
-            <p className="mb-2">{post.content}</p>
-            <div className="flex flex-wrap gap-2">
-              {post.images?.map((img, idx) => (
-                <img
-                  key={idx}
-                  src={img}
-                  alt="uploaded"
-                  className="w-32 h-32 object-cover rounded border"
-                />
-              ))}
-            </div>
-          </div>
-        ))}
+          )}
+        </div>
+
+        {/* Gallery */}
+        {user ? (
+          <Link to="/gallery" className="hover:text-sky-500 text-gray-700">
+            Gallery
+          </Link>
+        ) : (
+          <span className="text-gray-400 cursor-not-allowed" title="로그인 후 이용 가능합니다">
+            Gallery
+          </span>
+        )}
+
+        {/* Tour Videos */}
+        {user ? (
+          <Link to="/tours" className="hover:text-sky-500 text-gray-700">
+            Tour Videos
+          </Link>
+        ) : (
+          <span className="text-gray-400 cursor-not-allowed" title="로그인 후 이용 가능합니다">
+            Tour Videos
+          </span>
+        )}
+
+        {/* Shopping Mall */}
+        {user ? (
+          <Link to="/shopping" className="hover:text-sky-500 text-gray-700">
+            Shopping Mall
+          </Link>
+        ) : (
+          <span className="text-gray-400 cursor-not-allowed" title="로그인 후 이용 가능합니다">
+            Shopping Mall
+          </span>
+        )}
+
+        {/* Instructor */}
+        {user ? (
+          <Link to="/instructors" className="hover:text-sky-500 text-gray-700">
+            Instructor
+          </Link>
+        ) : (
+          <span className="text-gray-400 cursor-not-allowed" title="로그인 후 이용 가능합니다">
+            Instructor
+          </span>
+        )}
+
+        {/* 로그인 여부에 따른 처리 */}
+        {user ? (
+          <>
+            <span className="text-gray-500 hidden sm:inline">
+              {userData?.level && levelIcon[userData.level]} {user.email}
+            </span>
+            <button
+              onClick={handleLogout}
+              className="text-red-500 hover:underline"
+            >
+              Logout
+            </button>
+          </>
+        ) : (
+          <>
+            <Link to="/login" className="hover:text-sky-500">
+              로그인하러 가기
+            </Link>
+            <Link to="/signup" className="hover:text-sky-500">
+              회원가입
+            </Link>
+          </>
+        )}
       </div>
-    </div>
+    </nav>
   );
 }

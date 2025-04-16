@@ -1,10 +1,9 @@
 // src/pages/CommunityWrite.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useNavigate } from 'react-router-dom';
 import imageCompression from 'browser-image-compression';
-import { useContext } from 'react';
 import { UserInfoContext } from '../contexts/UserInfoContext';
 
 export default function CommunityWrite() {
@@ -16,6 +15,14 @@ export default function CommunityWrite() {
   const { user, userData } = useContext(UserInfoContext);
   const db = getFirestore();
   const storage = getStorage();
+
+  // 🚨 로그인 안 했으면 /login 으로 이동
+  useEffect(() => {
+    if (!user) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+    }
+  }, [user, navigate]);
 
   const handleImageChange = (e) => {
     setImages([...e.target.files]);
@@ -33,7 +40,6 @@ export default function CommunityWrite() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title || !content) return alert('제목과 내용을 입력해주세요.');
-    if (!user) return alert('로그인이 필요합니다.');
 
     setUploading(true);
     try {

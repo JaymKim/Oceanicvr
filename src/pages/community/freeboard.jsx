@@ -1,7 +1,6 @@
-// src/pages/community/FreeBoard.jsx
 import React, { useEffect, useState } from 'react';
+import { getFirestore, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
 
 export default function FreeBoard() {
   const [posts, setPosts] = useState([]);
@@ -9,31 +8,56 @@ export default function FreeBoard() {
 
   useEffect(() => {
     const fetchPosts = async () => {
-      const snapshot = await getDocs(collection(db, 'freePosts')); // ✅ 'freePosts' 라는 컬렉션 사용
-      const postData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPosts(postData);
+      const q = query(collection(db, 'community', 'free', 'posts'), orderBy('createdAt', 'desc'));
+      const qSnap = await getDocs(q);
+      const list = qSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setPosts(list);
     };
     fetchPosts();
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto mt-10">
-      <h2 className="text-2xl font-bold mb-6">📝 자유게시판</h2>
+    <div className="max-w-6xl mx-auto mt-10 px-4">
+      <div className="flex justify-between mb-4">
+        <h1 className="text-2xl font-bold">📢 자유게시판</h1>
+        <Link to="/community/free/write" className="bg-sky-500 text-white px-4 py-2 rounded hover:bg-sky-600">
+          새 글 작성
+        </Link>
+      </div>
 
-      <Link to="/community/free/new" className="mb-4 inline-block bg-sky-500 text-white py-2 px-4 rounded hover:bg-sky-600">
-        ✍️ 글쓰기
-      </Link>
-
-      <ul className="space-y-4">
-        {posts.map(post => (
-          <li key={post.id} className="p-4 border rounded hover:bg-gray-50">
-            <Link to={`/community/free/${post.id}`} className="text-lg font-semibold text-sky-600 hover:underline">
-              {post.title}
-            </Link>
-            <p className="text-sm text-gray-600">작성자: {post.author}</p>
-          </li>
-        ))}
-      </ul>
+      {/* 테이블 */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm text-center border border-gray-200">
+          <thead className="bg-gray-100 text-gray-700">
+            <tr>
+              <th className="py-2 px-3 border">번호</th>
+              <th className="py-2 px-3 border text-left">제목</th>
+              <th className="py-2 px-3 border">작성자</th>
+              <th className="py-2 px-3 border">작성일</th>
+              <th className="py-2 px-3 border">추천</th>
+              <th className="py-2 px-3 border">조회</th>
+            </tr>
+          </thead>
+          <tbody>
+            {posts.map((post, idx) => (
+              <tr key={post.id} className="border-t hover:bg-gray-50">
+                <td className="py-2 px-3 border">{posts.length - idx}</td>
+                <td className="py-2 px-3 border text-left">
+                  <Link to={`/community/free/${post.id}`} className="text-sky-600 hover:underline">
+                    {post.title}
+                  </Link>
+                </td>
+                <td className="py-2 px-3 border">{post.author}</td>
+                <td className="py-2 px-3 border">
+                  {post.createdAt?.toDate().toLocaleDateString('ko-KR')}
+                </td>
+                <td className="py-2 px-3 border">{post.likes || 0}</td>
+                <td className="py-2 px-3 border">{post.views || 0}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

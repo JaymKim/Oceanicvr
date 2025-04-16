@@ -1,7 +1,11 @@
-import React from 'react';
+// src/pages/Home.jsx
+import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
+import { UserInfoContext } from '../contexts/UserInfoContext';
 
 export default function Home() {
+  const { user } = useContext(UserInfoContext);
+
   return (
     <div className="relative">
       {/* 상단 고래 이미지 배경 */}
@@ -12,9 +16,16 @@ export default function Home() {
         <div className="mt-32 bg-white/80 p-6 rounded shadow text-center">
           <h1 className="text-3xl md:text-4xl font-bold text-sky-700 mb-2">Oceanic VR Dive</h1>
           <p className="text-gray-700 mb-4">Explore the sea, for everyone.</p>
-          <Link to="/login" className="bg-sky-500 text-white px-4 py-2 rounded hover:bg-sky-600">
-            로그인하러 가기
-          </Link>
+          
+          {/* ✅ 로그인하지 않은 경우에만 로그인 버튼을 보여줌 */}
+          {!user && (
+            <Link
+              to="/login"
+              className="bg-sky-500 text-white px-4 py-2 rounded hover:bg-sky-600"
+            >
+              로그인하러 가기
+            </Link>
+          )}
         </div>
       </div>
 

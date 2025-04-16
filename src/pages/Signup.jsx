@@ -1,13 +1,14 @@
-// ✅ Signup.jsx - 이메일 인증 포함 + 카카오 주소 API 적용 (생년월일 드롭다운 포함)
+// src/pages/community/Signup.jsx
 import React, { useState, useEffect } from 'react';
 import { auth } from '../firebase';
-import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, signInWithEmailAndPassword } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
 export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [nickname, setNickname] = useState('');
   const [agency, setAgency] = useState('PADI');
   const [level, setLevel] = useState('OpenWater');
   const [logs, setLogs] = useState(0);
@@ -17,7 +18,10 @@ export default function Signup() {
   const [zipcode, setZipcode] = useState('');
   const [address, setAddress] = useState('');
   const [detailAddress, setDetailAddress] = useState('');
+  const [phone, setPhone] = useState('');
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
   const navigate = useNavigate();
   const db = getFirestore();
 
@@ -40,8 +44,23 @@ export default function Signup() {
   const handleSignup = async (e) => {
     e.preventDefault();
 
+    if (!agreed) {
+      setError('약관에 동의하셔야 합니다.');
+      return;
+    }
+
     if (!birthYear || !birthMonth || !birthDay) {
       setError('생년월일을 선택해주세요.');
+      return;
+    }
+
+    if (!nickname.trim()) {
+      setError('닉네임을 입력해주세요.');
+      return;
+    }
+
+    if (!phone.trim()) {
+      setError('연락처를 입력해주세요.');
       return;
     }
 
@@ -55,18 +74,27 @@ export default function Signup() {
 
       await setDoc(doc(db, 'users', user.uid), {
         email,
+        nickname,
         agency,
         level,
         logs: Number(logs),
         birthdate: fullBirthdate,
+        phone,
         zipcode,
         address,
         detailAddress,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       });
 
-      alert('회원가입 완료! 이메일을 확인해주세요.');
-      navigate('/login');
+      // 자동 로그인
+      await signInWithEmailAndPassword(auth, email, password);
+
+      // 메시지 표시 후 홈으로 이동
+      setInfoMessage('입력하신 개인정보는 회원 확인을 위한 용도로만 사용되며, 불법적으로 활용되지 않습니다.');
+      setTimeout(() => {
+        setInfoMessage('');
+        navigate('/');
+      }, 3000);
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
         setError('이미 가입된 이메일입니다.');
@@ -79,45 +107,41 @@ export default function Signup() {
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-xl shadow-md">
       <h2 className="text-2xl font-bold text-center mb-6">회원가입</h2>
+
+      {/* 안내 메시지 */}
+      {infoMessage && (
+        <div className="mb-4 p-3 bg-green-100 border border-green-300 text-green-700 rounded text-sm text-center">
+          {infoMessage}
+        </div>
+      )}
+
       <form onSubmit={handleSignup} className="space-y-4">
+
+        {/* 이메일 */}
         <div>
           <label className="block text-sm font-medium">이메일</label>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full mt-1 p-2 border rounded-md" required />
         </div>
 
+        {/* 닉네임 */}
+        <div>
+          <label className="block text-sm font-medium">닉네임</label>
+          <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-full mt-1 p-2 border rounded-md" required />
+        </div>
+
+        {/* 비밀번호 */}
         <div>
           <label className="block text-sm font-medium">비밀번호</label>
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full mt-1 p-2 border rounded-md" required />
         </div>
 
+        {/* 연락처 */}
         <div>
-          <label className="block text-sm font-medium">다이빙 단체</label>
-          <select value={agency} onChange={(e) => setAgency(e.target.value)} className="w-full mt-1 p-2 border rounded-md">
-            <option value="PADI">PADI</option>
-            <option value="SSI">SSI</option>
-            <option value="SDI">SDI</option>
-            <option value="NAUI">NAUI</option>
-          </select>
+          <label className="block text-sm font-medium">연락처</label>
+          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full mt-1 p-2 border rounded-md" required />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium">자격 등급</label>
-          <select value={level} onChange={(e) => setLevel(e.target.value)} className="w-full mt-1 p-2 border rounded-md">
-            <option value="OpenWater">Open Water</option>
-            <option value="Advance">Advance</option>
-            <option value="Rescue">Rescue</option>
-            <option value="DiveMaster">Dive Master</option>
-            <option value="Instructor">Instructor</option>
-            <option value="Trainer">Trainer</option>
-            <option value="일반">일반</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">로그 수</label>
-          <input type="number" value={logs} onChange={(e) => setLogs(e.target.value)} className="w-full mt-1 p-2 border rounded-md" required />
-        </div>
-
+        {/* 생년월일 */}
         <div>
           <label className="block text-sm font-medium">생년월일</label>
           <div className="flex gap-2">
@@ -143,6 +167,7 @@ export default function Signup() {
           </div>
         </div>
 
+        {/* 주소 */}
         <div>
           <label className="block text-sm font-medium">우편번호</label>
           <div className="flex gap-2">
@@ -159,6 +184,43 @@ export default function Signup() {
         <div>
           <label className="block text-sm font-medium">상세 주소</label>
           <input type="text" value={detailAddress} onChange={(e) => setDetailAddress(e.target.value)} className="w-full mt-1 p-2 border rounded-md" required />
+        </div>
+
+        {/* 다이빙 단체 */}
+        <div>
+          <label className="block text-sm font-medium">다이빙 단체</label>
+          <select value={agency} onChange={(e) => setAgency(e.target.value)} className="w-full mt-1 p-2 border rounded-md">
+            <option value="SDI">SDI</option>
+            <option value="PADI">PADI</option>
+            <option value="SSI">SSI</option>
+            <option value="NAUI">NAUI</option>
+          </select>
+        </div>
+
+        {/* 자격 등급 */}
+        <div>
+          <label className="block text-sm font-medium">자격 등급</label>
+          <select value={level} onChange={(e) => setLevel(e.target.value)} className="w-full mt-1 p-2 border rounded-md">
+            <option value="OpenWater">🅞 Open Water</option>
+            <option value="Advance">🅐 Advance</option>
+            <option value="Rescue">🅡 Rescue</option>
+            <option value="DiveMaster">🅜 Dive Master</option>
+            <option value="Instructor">🅘 Instructor</option>
+            <option value="Trainer">Trainer</option>
+            <option value="일반">👤 일반</option>
+          </select>
+        </div>
+
+        {/* 로그 수 */}
+        <div>
+          <label className="block text-sm font-medium">로그 수</label>
+          <input type="number" value={logs} onChange={(e) => setLogs(e.target.value)} className="w-full mt-1 p-2 border rounded-md" required />
+        </div>
+
+        {/* 약관 동의 */}
+        <div className="flex items-center">
+          <input type="checkbox" id="agree" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mr-2" />
+          <label htmlFor="agree" className="text-sm">개인정보 수집 및 이용에 동의합니다.</label>
         </div>
 
         {error && <p className="text-red-500 text-sm">{error}</p>}
