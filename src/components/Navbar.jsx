@@ -3,12 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { UserInfoContext } from '../contexts/UserInfoContext';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const { user, userData } = useContext(UserInfoContext);
   const navigate = useNavigate();
 
   const [isSubMenuVisible, setIsSubMenuVisible] = useState(false);
+  const [isMallSubMenuVisible, setIsMallSubMenuVisible] = useState(false);
   const [timeoutId, setTimeoutId] = useState(null);
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0 });
 
@@ -34,6 +36,16 @@ export default function Navbar() {
 
   const handleMouseLeave = () => {
     const id = setTimeout(() => setIsSubMenuVisible(false), 200);
+    setTimeoutId(id);
+  };
+
+  const handleMallMouseEnter = () => {
+    clearTimeout(timeoutId);
+    setIsMallSubMenuVisible(true);
+  };
+
+  const handleMallMouseLeave = () => {
+    const id = setTimeout(() => setIsMallSubMenuVisible(false), 200);
     setTimeoutId(id);
   };
 
@@ -99,17 +111,32 @@ export default function Navbar() {
 
         {/* Dive Gears */}
         {user ? (
-          <Link to="/gears" className="hover:text-sky-500 text-gray-700">Dive Gears</Link>
+          <Link to="/DiveGear" className="hover:text-sky-500 text-gray-700">Dive Gears</Link>
         ) : (
           <span className="text-gray-400 cursor-not-allowed" title="로그인 후 이용 가능합니다">Dive Gears</span>
         )}
 
-        {/* Shopping Mall */}
-        {user ? (
-          <Link to="/shopping-mall" className="hover:text-sky-500 text-gray-700">Shopping Mall</Link>
-        ) : (
-          <span className="text-gray-400 cursor-not-allowed" title="로그인 후 이용 가능합니다">Shopping Mall</span>
-        )}
+        {/* Shopping Mall (with dropdown) */}
+        <div
+          className="relative"
+          onMouseEnter={handleMallMouseEnter}
+          onMouseLeave={handleMallMouseLeave}
+        >
+          <span className="hover:text-sky-500 text-gray-700 cursor-pointer">Shopping Mall</span>
+          {isMallSubMenuVisible && (
+            <div className="absolute left-0 top-full mt-2 bg-white shadow-lg rounded-md w-48 z-50">
+              <Link to="/shop/gear" className="block px-4 py-2 text-gray-700 hover:bg-sky-100">
+                Dive Gear
+              </Link>
+              <Link to="/shop/figure" className="block px-4 py-2 text-gray-700 hover:bg-sky-100">
+                Figure
+              </Link>
+              <Link to="/shop/etc" className="block px-4 py-2 text-gray-700 hover:bg-sky-100">
+                기타
+              </Link>
+            </div>
+          )}
+        </div>
 
         {/* Dive Point */}
         {user ? (
@@ -125,9 +152,11 @@ export default function Navbar() {
           <span className="text-gray-400 cursor-not-allowed" title="로그인 후 이용 가능합니다">Instructor</span>
         )}
 
-        {/* Auth */}
-        {user ? (
+        {/* Notification + User */}
+        {user && (
           <>
+            <NotificationBell />
+
             <span
               onContextMenu={handleContextMenu}
               className="text-gray-500 hidden sm:inline hover:underline cursor-pointer"
@@ -139,7 +168,9 @@ export default function Navbar() {
               Logout
             </button>
           </>
-        ) : (
+        )}
+
+        {!user && (
           <>
             <Link to="/login" className="hover:text-sky-500">로그인하러 가기</Link>
             <Link to="/signup" className="hover:text-sky-500">회원가입</Link>

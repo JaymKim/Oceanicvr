@@ -1,6 +1,5 @@
-// src/pages/TourList.jsx
 import React, { useEffect, useState, useContext } from 'react';
-import { getFirestore, collection, getDocs, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { UserInfoContext } from '../contexts/UserInfoContext'; // 🔧 경로 수정: src 내부로
 
@@ -19,19 +18,6 @@ export default function TourList() {
     };
     fetchTours();
   }, [db]);
-
-  const handleDelete = async (id) => {
-    const confirm = window.confirm('정말 삭제하시겠습니까?');
-    if (!confirm) return;
-    try {
-      await deleteDoc(doc(db, 'tourRequests', id));
-      setTours(prev => prev.filter(tour => tour.id !== id));
-      alert('삭제 완료!');
-    } catch (err) {
-      console.error('삭제 실패:', err);
-      alert('삭제 중 오류가 발생했습니다.');
-    }
-  };
 
   return (
     <div className="max-w-6xl mx-auto mt-10 px-4">
@@ -55,7 +41,7 @@ export default function TourList() {
               <th className="py-2 px-3 border">신청자</th>
               <th className="py-2 px-3 border">등급</th>
               <th className="py-2 px-3 border">인원</th>
-              <th className="py-2 px-3 border">삭제</th>
+              <th className="py-2 px-3 border">참여자</th>
             </tr>
           </thead>
           <tbody>
@@ -71,15 +57,8 @@ export default function TourList() {
                 <td className="py-2 px-3 border">{tour.name || '-'}</td>
                 <td className="py-2 px-3 border">{tour.level || '-'}</td>
                 <td className="py-2 px-3 border">{tour.participants || '-'}</td>
-                <td className="py-2 px-3 border" onClick={(e) => e.stopPropagation()}>
-                  {user?.email === tour.email && (
-                    <button
-                      onClick={() => handleDelete(tour.id)}
-                      className="text-xs text-red-500 hover:underline"
-                    >
-                      삭제
-                    </button>
-                  )}
+                <td className="py-2 px-3 border">
+                  {tour.attendees ? tour.attendees.length : 0}
                 </td>
               </tr>
             ))}

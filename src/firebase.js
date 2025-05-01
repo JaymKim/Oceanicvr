@@ -1,22 +1,21 @@
 // src/firebase.js
-
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage'; // ✅ 스토리지 추가
 
 const firebaseConfig = {
   apiKey: "AIzaSyAFntOsnimhiBnCJAF6AsflDHmBhWhraoc",
   authDomain: "oceanic-vr-dive.firebaseapp.com",
   projectId: "oceanic-vr-dive",
-  storageBucket: "oceanic-vr-dive.firebasestorage.app",
+  storageBucket: "oceanic-vr-dive.firebasestorage.app", // ✅ 여기 수정 중요!!!
   messagingSenderId: "907684558679",
   appId: "1:907684558679:web:d46079730c3dfaa4d3f012",
   measurementId: "G-HKZP6HF4DZ"
 };
 
-// Firebase 초기화
 const app = initializeApp(firebaseConfig);
 
-// 기능별로 export
-export const auth = getAuth(app);         // 로그인/회원가입 등 인증 관련
-export const db = getFirestore(app);      // Firestore 데이터베이스
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app); // ✅ storage export

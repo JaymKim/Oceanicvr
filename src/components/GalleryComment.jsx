@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { UserInfoContext } from '../contexts/UserInfoContext';
 
-export default function GalleryComment({ imageId }) {
+export default function GalleryComment({ imageId, postAuthorUid, postTitle }) {
   const { user } = useContext(UserInfoContext);
   const [comments, setComments] = useState([]);
   const [content, setContent] = useState('');
@@ -55,8 +55,22 @@ export default function GalleryComment({ imageId }) {
     await addDoc(collection(db, 'gallery', imageId, 'comments'), {
       content,
       author: user?.email || '익명',
+      authorUid: user?.uid || '',
       createdAt: serverTimestamp(),
     });
+
+    // 알림 생성
+    if (user?.uid && user.uid !== postAuthorUid) {
+      await addDoc(collection(db, 'notifications'), {
+        recipientUid: postAuthorUid,
+        postId: imageId,
+        boardType: 'gallery',
+        postTitle: postTitle || '갤러리 게시물',
+        commentSnippet: content.slice(0, 30),
+        timestamp: serverTimestamp(),
+        isRead: false,
+      });
+    }
 
     setContent('');
   };

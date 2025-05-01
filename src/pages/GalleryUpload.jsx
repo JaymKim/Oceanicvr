@@ -1,4 +1,3 @@
-// src/pages/GalleryUpload.jsx
 import React, { useState, useContext } from 'react';
 import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -8,7 +7,7 @@ import imageCompression from 'browser-image-compression';
 import * as exifr from 'exifr';
 
 export default function GalleryUpload() {
-  const { user } = useContext(UserInfoContext);
+  const { user, userData } = useContext(UserInfoContext);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [hashtags, setHashtags] = useState('');
@@ -23,7 +22,6 @@ export default function GalleryUpload() {
     const files = Array.from(e.target.files);
     const combined = [...imageFiles, ...files];
 
-    // 중복 제거
     const unique = combined.filter(
       (file, index, self) =>
         index === self.findIndex(f => f.name === file.name && f.size === file.size)
@@ -91,7 +89,7 @@ export default function GalleryUpload() {
     try {
       const imageUrls = [];
       const imagePaths = [];
-      const exifData = await extractExif(imageFiles[0]);
+      const exifList = [];
 
       for (const file of imageFiles) {
         const resized = await resizeImage(file);
@@ -104,6 +102,9 @@ export default function GalleryUpload() {
 
         imageUrls.push(downloadURL);
         imagePaths.push(storagePath);
+
+        const exif = await extractExif(file);
+        exifList.push(exif);
       }
 
       const hashtagArray = hashtags
@@ -120,13 +121,11 @@ export default function GalleryUpload() {
         isPublic,
         hashtags: hashtagArray,
         author: user.email,
-        nickname: user.displayName || '',
+        nickname: userData?.nickname || user.email,
+        authorUid: user.uid, // ✅ 작성자 UID 추가
+        levelIcon: userData?.levelIcon || '👤', // ✅ 등급 이모지 추가
         createdAt: serverTimestamp(),
-        takenAt: exifData.takenAt?.toISOString() || '',
-        cameraModel: exifData.cameraModel || '',
-        aperture: exifData.aperture || '',
-        shutter: exifData.shutter || '',
-        iso: exifData.iso || '',
+        metadata: exifList
       });
 
       alert('업로드 완료!');
@@ -151,7 +150,6 @@ export default function GalleryUpload() {
         />
         <p className="text-xs text-gray-500">최대 20장, 1.5MB 이하로 자동 압축됩니다.</p>
 
-        {/* 미리보기 + 삭제 버튼 */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {imageFiles.map((file, index) => (
             <div key={index} className="relative border rounded overflow-hidden">

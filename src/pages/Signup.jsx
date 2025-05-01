@@ -1,27 +1,30 @@
-// src/pages/community/Signup.jsx
 import React, { useState, useEffect } from 'react';
 import { auth } from '../firebase';
-import { createUserWithEmailAndPassword, sendEmailVerification, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDocs, collection, serverTimestamp } from 'firebase/firestore';
 
 export default function Signup() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [nickname, setNickname] = useState('');
-  const [agency, setAgency] = useState('PADI');
-  const [level, setLevel] = useState('OpenWater');
-  const [logs, setLogs] = useState(0);
-  const [birthYear, setBirthYear] = useState('');
-  const [birthMonth, setBirthMonth] = useState('');
-  const [birthDay, setBirthDay] = useState('');
-  const [zipcode, setZipcode] = useState('');
-  const [address, setAddress] = useState('');
-  const [detailAddress, setDetailAddress] = useState('');
-  const [phone, setPhone] = useState('');
+  const [form, setForm] = useState({
+    name: '',
+    nickname: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    phone: '',
+    birthdate: '',
+    agency: 'PADI',
+    level: 'OpenWater',
+    zipcode: '',
+    address: '',
+    detailAddress: ''
+  });
+  const [nicknameAvailable, setNicknameAvailable] = useState(null);
   const [agreed, setAgreed] = useState(false);
-  const [error, setError] = useState('');
+  const [canSubmit, setCanSubmit] = useState(false);
   const [infoMessage, setInfoMessage] = useState('');
+  const [error, setError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
   const db = getFirestore();
 
@@ -35,67 +38,96 @@ export default function Signup() {
   const openPostcodePopup = () => {
     new window.daum.Postcode({
       oncomplete: function (data) {
-        setZipcode(data.zonecode);
-        setAddress(data.roadAddress);
+        setForm(prev => ({
+          ...prev,
+          zipcode: data.zonecode,
+          address: data.roadAddress
+        }));
       },
     }).open();
   };
 
-  const handleSignup = async (e) => {
+  const validatePassword = (password) => {
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+    const isValid = regex.test(password);
+    setPasswordError(
+      isValid ? '' : '비밀번호는 영문 대소문자, 숫자, 특수문자를 포함해 8자 이상이어야 합니다.'
+    );
+    return isValid;
+  };
+
+  useEffect(() => {
+    const allValid =
+      form.name.trim() &&
+      form.nickname.trim() &&
+      nicknameAvailable === true &&
+      form.email.trim() &&
+      form.password &&
+      form.confirmPassword &&
+      form.phone.length === 13 &&
+      form.birthdate &&
+      form.detailAddress.trim() &&
+      agreed &&
+      form.password === form.confirmPassword &&
+      validatePassword(form.password);
+    setCanSubmit(allValid);
+  }, [form, agreed, nicknameAvailable]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    if (name === 'phone') {
+      let formatted = value.replace(/[^0-9]/g, '').slice(0, 11);
+      if (formatted.length >= 4 && formatted.length < 8) {
+        formatted = `${formatted.slice(0, 3)}-${formatted.slice(3)}`;
+      } else if (formatted.length >= 8) {
+        formatted = `${formatted.slice(0, 3)}-${formatted.slice(3, 7)}-${formatted.slice(7)}`;
+      }
+      setForm(prev => ({ ...prev, phone: formatted }));
+      return;
+    }
+
+    setForm(prev => ({ ...prev, [name]: value }));
+
+    if (name === 'password') {
+      validatePassword(value);
+    }
+  };
+
+  const checkNickname = async () => {
+    if (!form.nickname.trim()) return;
+    const querySnapshot = await getDocs(collection(db, 'users'));
+    const taken = querySnapshot.docs.some(doc => doc.data().nickname === form.nickname);
+    setNicknameAvailable(!taken);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!agreed) {
-      setError('약관에 동의하셔야 합니다.');
-      return;
-    }
-
-    if (!birthYear || !birthMonth || !birthDay) {
-      setError('생년월일을 선택해주세요.');
-      return;
-    }
-
-    if (!nickname.trim()) {
-      setError('닉네임을 입력해주세요.');
-      return;
-    }
-
-    if (!phone.trim()) {
-      setError('연락처를 입력해주세요.');
-      return;
-    }
-
-    const fullBirthdate = `${birthYear}-${birthMonth.padStart(2, '0')}-${birthDay.padStart(2, '0')}`;
+    if (!canSubmit) return;
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, form.email, form.password);
       const user = userCredential.user;
-
       await sendEmailVerification(user);
-
       await setDoc(doc(db, 'users', user.uid), {
-        email,
-        nickname,
-        agency,
-        level,
-        logs: Number(logs),
-        birthdate: fullBirthdate,
-        phone,
-        zipcode,
-        address,
-        detailAddress,
-        createdAt: new Date().toISOString(),
+        name: form.name,
+        nickname: form.nickname,
+        email: form.email,
+        phone: form.phone,
+        birthdate: form.birthdate,
+        agency: form.agency,
+        level: form.level,
+        zipcode: form.zipcode,
+        address: form.address,
+        detailAddress: form.detailAddress,
+        createdAt: serverTimestamp(),
+        admin: false,
       });
 
-      // 자동 로그인
-      await signInWithEmailAndPassword(auth, email, password);
-
-      // 메시지 표시 후 홈으로 이동
-      setInfoMessage('입력하신 개인정보는 회원 확인을 위한 용도로만 사용되며, 불법적으로 활용되지 않습니다.');
-      setTimeout(() => {
-        setInfoMessage('');
-        navigate('/');
-      }, 3000);
+      setInfoMessage('가입이 완료되었습니다. 이메일 인증을 진행해주세요!');
+      setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
+      console.error(err);
       if (err.code === 'auth/email-already-in-use') {
         setError('이미 가입된 이메일입니다.');
       } else {
@@ -108,124 +140,108 @@ export default function Signup() {
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-xl shadow-md">
       <h2 className="text-2xl font-bold text-center mb-6">회원가입</h2>
 
-      {/* 안내 메시지 */}
-      {infoMessage && (
-        <div className="mb-4 p-3 bg-green-100 border border-green-300 text-green-700 rounded text-sm text-center">
-          {infoMessage}
-        </div>
-      )}
+      {infoMessage && <div className="mb-4 text-sm text-green-600 text-center">{infoMessage}</div>}
+      {error && <div className="mb-4 text-sm text-red-600 text-center">{error}</div>}
 
-      <form onSubmit={handleSignup} className="space-y-4">
-
-        {/* 이메일 */}
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium">이메일</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full mt-1 p-2 border rounded-md" required />
+          <label className="block text-sm font-medium">이름</label>
+          <input name="name" value={form.name} onChange={handleChange} className="w-full mt-1 p-2 border rounded" required />
         </div>
 
-        {/* 닉네임 */}
         <div>
           <label className="block text-sm font-medium">닉네임</label>
-          <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-full mt-1 p-2 border rounded-md" required />
+          <div className="flex gap-2">
+            <input name="nickname" value={form.nickname} onChange={handleChange} className="w-full p-2 border rounded" required />
+            <button type="button" onClick={checkNickname} className="px-3 bg-gray-200 hover:bg-gray-300 rounded">중복확인</button>
+          </div>
+          {nicknameAvailable === false && <p className="text-xs text-red-500">이미 사용 중인 닉네임입니다.</p>}
+          {nicknameAvailable === true && <p className="text-xs text-green-500">사용 가능한 닉네임입니다.</p>}
         </div>
 
-        {/* 비밀번호 */}
+        <div>
+          <label className="block text-sm font-medium">이메일</label>
+          <input name="email" type="email" value={form.email} onChange={handleChange} className="w-full mt-1 p-2 border rounded" required />
+        </div>
+
         <div>
           <label className="block text-sm font-medium">비밀번호</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full mt-1 p-2 border rounded-md" required />
+          <input name="password" type="password" value={form.password} onChange={handleChange} className="w-full mt-1 p-2 border rounded" required />
+          {passwordError && <p className="text-xs text-red-500">{passwordError}</p>}
         </div>
 
-        {/* 연락처 */}
         <div>
-          <label className="block text-sm font-medium">연락처</label>
-          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full mt-1 p-2 border rounded-md" required />
+          <label className="block text-sm font-medium">비밀번호 확인</label>
+          <input name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} className="w-full mt-1 p-2 border rounded" required />
+          {form.confirmPassword && form.password !== form.confirmPassword && (
+            <p className="text-xs text-red-500">비밀번호가 일치하지 않습니다. 다시 입력해주세요.</p>
+          )}
         </div>
 
-        {/* 생년월일 */}
-        <div>
-          <label className="block text-sm font-medium">생년월일</label>
-          <div className="flex gap-2">
-            <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)} className="w-1/3 p-2 border rounded" required>
-              <option value="">년</option>
-              {Array.from({ length: 70 }, (_, i) => {
-                const year = new Date().getFullYear() - i;
-                return <option key={year} value={year}>{year}</option>;
-              })}
-            </select>
-            <select value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} className="w-1/3 p-2 border rounded" required>
-              <option value="">월</option>
-              {Array.from({ length: 12 }, (_, i) => (
-                <option key={i + 1} value={i + 1}>{i + 1}</option>
-              ))}
-            </select>
-            <select value={birthDay} onChange={(e) => setBirthDay(e.target.value)} className="w-1/3 p-2 border rounded" required>
-              <option value="">일</option>
-              {Array.from({ length: 31 }, (_, i) => (
-                <option key={i + 1} value={i + 1}>{i + 1}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* 주소 */}
         <div>
           <label className="block text-sm font-medium">우편번호</label>
           <div className="flex gap-2">
-            <input type="text" value={zipcode} readOnly className="w-full p-2 border rounded-md" />
-            <button type="button" onClick={openPostcodePopup} className="bg-gray-200 px-3 py-2 rounded hover:bg-gray-300">검색</button>
+            <input name="zipcode" value={form.zipcode} onChange={handleChange} className="w-full p-2 border rounded" readOnly />
+            <button type="button" onClick={openPostcodePopup} className="px-3 bg-gray-200 hover:bg-gray-300 rounded">주소검색</button>
           </div>
         </div>
 
         <div>
           <label className="block text-sm font-medium">기본 주소</label>
-          <input type="text" value={address} readOnly className="w-full mt-1 p-2 border rounded-md" />
+          <input name="address" value={form.address} onChange={handleChange} className="w-full mt-1 p-2 border rounded" readOnly />
         </div>
 
         <div>
           <label className="block text-sm font-medium">상세 주소</label>
-          <input type="text" value={detailAddress} onChange={(e) => setDetailAddress(e.target.value)} className="w-full mt-1 p-2 border rounded-md" required />
+          <input name="detailAddress" value={form.detailAddress} onChange={handleChange} className="w-full mt-1 p-2 border rounded" required />
         </div>
 
-        {/* 다이빙 단체 */}
+        <div>
+          <label className="block text-sm font-medium">연락처</label>
+          <input name="phone" value={form.phone} onChange={handleChange} className="w-full mt-1 p-2 border rounded" placeholder="010-0000-0000" required />
+          {form.phone.length !== 13 && <p className="text-xs text-red-500">연락처를 정확히 입력해주세요.</p>}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium">생년월일</label>
+          <input name="birthdate" type="date" value={form.birthdate} onChange={handleChange} className="w-full mt-1 p-2 border rounded" required />
+        </div>
+
         <div>
           <label className="block text-sm font-medium">다이빙 단체</label>
-          <select value={agency} onChange={(e) => setAgency(e.target.value)} className="w-full mt-1 p-2 border rounded-md">
-            <option value="SDI">SDI</option>
+          <select name="agency" value={form.agency} onChange={handleChange} className="w-full mt-1 p-2 border rounded">
             <option value="PADI">PADI</option>
+            <option value="SDI">SDI</option>
             <option value="SSI">SSI</option>
             <option value="NAUI">NAUI</option>
+            <option value="일반">👤 일반</option>
           </select>
         </div>
 
-        {/* 자격 등급 */}
         <div>
-          <label className="block text-sm font-medium">자격 등급</label>
-          <select value={level} onChange={(e) => setLevel(e.target.value)} className="w-full mt-1 p-2 border rounded-md">
+          <label className="block text-sm font-medium">다이빙 레벨</label>
+          <select
+            name="level"
+            value={form.level}
+            onChange={handleChange}
+            disabled={form.agency === '일반'}
+            className={`w-full mt-1 p-2 border rounded ${form.agency === '일반' ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`}
+          >
             <option value="OpenWater">🅞 Open Water</option>
             <option value="Advance">🅐 Advance</option>
             <option value="Rescue">🅡 Rescue</option>
             <option value="DiveMaster">🅜 Dive Master</option>
             <option value="Instructor">🅘 Instructor</option>
-            <option value="Trainer">Trainer</option>
-            <option value="일반">👤 일반</option>
+            <option value="Trainer">🅣 Trainer</option>
           </select>
         </div>
 
-        {/* 로그 수 */}
-        <div>
-          <label className="block text-sm font-medium">로그 수</label>
-          <input type="number" value={logs} onChange={(e) => setLogs(e.target.value)} className="w-full mt-1 p-2 border rounded-md" required />
-        </div>
-
-        {/* 약관 동의 */}
         <div className="flex items-center">
           <input type="checkbox" id="agree" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mr-2" />
           <label htmlFor="agree" className="text-sm">개인정보 수집 및 이용에 동의합니다.</label>
         </div>
 
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-
-        <button type="submit" className="w-full bg-sky-500 hover:bg-sky-600 text-white py-2 rounded-md">
+        <button type="submit" disabled={!canSubmit} className={`w-full text-white py-2 rounded ${canSubmit ? 'bg-sky-500 hover:bg-sky-600' : 'bg-gray-300 cursor-not-allowed'}`}>
           회원가입
         </button>
       </form>

@@ -1,4 +1,3 @@
-// src/components/GalleryModal.jsx
 import React, { useState, useContext } from 'react';
 import { getFirestore, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
@@ -121,31 +120,81 @@ export default function GalleryModal({ photo, onClose }) {
           ))}
         </div>
 
+        {/* 🔧 수정/삭제 버튼 영역 */}
         {isAuthor && !editMode && (
           <div className="flex justify-end gap-3 mt-2">
-            <button onClick={() => setEditMode(true)} className="text-sm text-sky-600 hover:underline">✏️ 수정</button>
-            <button onClick={handleDelete} className="text-sm text-red-500 hover:underline">🗑️ 삭제</button>
+            <button
+              onClick={() => navigate(`/gallery/edit/${photo.id}`)}
+              className="text-sm text-green-600 hover:underline"
+            >
+              ✏️ 페이지에서 수정
+            </button>
+            <button
+              onClick={() => setEditMode(true)}
+              className="text-sm text-sky-600 hover:underline"
+            >
+              🛠 모달에서 수정
+            </button>
+            <button
+              onClick={handleDelete}
+              className="text-sm text-red-500 hover:underline"
+            >
+              🗑 삭제
+            </button>
           </div>
         )}
 
         <div className="mt-4 text-sm text-gray-800">
           {editMode ? (
             <>
-              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border rounded p-2" />
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="w-full border rounded p-2 mt-2 min-h-[100px]" />
-              <input type="text" value={hashtags} onChange={(e) => setHashtags(e.target.value)} className="w-full border rounded p-2 mt-2" placeholder="해시태그 (예: 바다, 여행)" />
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full border rounded p-2"
+              />
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full border rounded p-2 mt-2 min-h-[100px]"
+              />
+              <input
+                type="text"
+                value={hashtags}
+                onChange={(e) => setHashtags(e.target.value)}
+                className="w-full border rounded p-2 mt-2"
+                placeholder="해시태그 (예: 바다, 여행)"
+              />
               <label className="flex items-center gap-2 text-sm mt-2">
-                <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={isPublic}
+                  onChange={(e) => setIsPublic(e.target.checked)}
+                />
                 공개 여부
               </label>
               <div className="flex justify-end gap-3 mt-2">
-                <button onClick={handleSave} className="bg-sky-500 text-white px-4 py-1 rounded hover:bg-sky-600">저장</button>
-                <button onClick={() => setEditMode(false)} className="text-gray-500 hover:underline">취소</button>
+                <button
+                  onClick={handleSave}
+                  className="bg-sky-500 text-white px-4 py-1 rounded hover:bg-sky-600"
+                >
+                  저장
+                </button>
+                <button
+                  onClick={() => setEditMode(false)}
+                  className="text-gray-500 hover:underline"
+                >
+                  취소
+                </button>
               </div>
             </>
           ) : (
             <>
-              {description && <p className="text-gray-600 whitespace-pre-line mt-2">{description}</p>}
+              {description && (
+                <p className="text-gray-600 whitespace-pre-line mt-2">
+                  {description}
+                </p>
+              )}
               {photo.hashtags?.length > 0 && (
                 <div className="text-sm text-blue-500 mt-1">
                   {photo.hashtags.map((tag, i) => (
@@ -153,12 +202,14 @@ export default function GalleryModal({ photo, onClose }) {
                   ))}
                 </div>
               )}
-              <p className="text-xs text-gray-400 mt-1">작성자: {photo.nickname || photo.author}</p>
+              <p className="text-xs text-gray-400 mt-1">
+                작성자: {photo.nickname || photo.author}
+              </p>
             </>
           )}
         </div>
 
-        <GalleryComment imageId={photo.id} />
+        <GalleryComment imageId={photo.id} showNickname={true} />
       </div>
     </div>
   );

@@ -3,7 +3,6 @@ import React, { useState, useEffect, useContext } from 'react';
 import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useNavigate } from 'react-router-dom';
-import imageCompression from 'browser-image-compression';
 import { UserInfoContext } from '../contexts/UserInfoContext';
 
 export default function CommunityWrite() {
@@ -16,7 +15,6 @@ export default function CommunityWrite() {
   const db = getFirestore();
   const storage = getStorage();
 
-  // 🚨 로그인 안 했으면 /login 으로 이동
   useEffect(() => {
     if (!user) {
       alert('로그인이 필요합니다.');
@@ -28,29 +26,39 @@ export default function CommunityWrite() {
     setImages([...e.target.files]);
   };
 
-  const resizeImage = async (file) => {
-    const options = {
-      maxSizeMB: 1,
-      maxWidthOrHeight: 1024,
-      useWebWorker: true,
-    };
-    return await imageCompression(file, options);
+  const sanitizeFilename = (filename) => {
+    return encodeURIComponent(filename.replace(/\s+/g, '_').replace(/[^\w.\-]/gi, ''));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title || !content) return alert('제목과 내용을 입력해주세요.');
+    if (!title || !content) {
+      alert('제목과 내용을 입력해주세요.');
+      return;
+    }
 
     setUploading(true);
     try {
       const imageUrls = [];
 
       for (const file of images) {
-        const resized = await resizeImage(file);
-        const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
-        await uploadBytes(storageRef, resized);
-        const downloadURL = await getDownloadURL(storageRef);
-        imageUrls.push(downloadURL);
+        try {
+          const safeName = sanitizeFilename(file.name);
+          const path = `freeboard/${Date.now()}_${safeName}`;
+          const storageRef = ref(storage, path);
+
+          console.log('이미지 업로드 시작:', path);
+          await uploadBytes(storageRef, file);
+          const url = await getDownloadURL(storageRef);
+          console.log('업로드 완료:', url);
+
+          imageUrls.push(url);
+        } catch (imgErr) {
+          console.error('🔥 이미지 업로드 실패:', imgErr);
+          alert(`🔥 이미지 업로드 실패: ${file.name}\n에러내용: ${imgErr.message}`);
+          setUploading(false);
+          return;
+        }
       }
 
       await addDoc(collection(db, 'posts'), {
@@ -58,14 +66,16 @@ export default function CommunityWrite() {
         content,
         images: imageUrls,
         author: user.email,
+        nickname: userData?.nickname || '익명',
+        levelIcon: userData?.levelIcon || '',
         createdAt: serverTimestamp(),
       });
 
       alert('게시물이 등록되었습니다!');
       navigate('/community');
     } catch (err) {
-      console.error(err);
-      alert('업로드 실패!');
+      console.error('게시물 등록 실패:', err);
+      alert('게시물 등록 중 오류 발생: ' + err.message);
     } finally {
       setUploading(false);
     }

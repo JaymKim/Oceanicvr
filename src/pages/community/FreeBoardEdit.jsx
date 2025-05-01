@@ -1,4 +1,3 @@
-// src/pages/community/FreeBoardEdit.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -12,7 +11,6 @@ import {
   ref,
   uploadBytes,
   getDownloadURL,
-  deleteObject
 } from 'firebase/storage';
 import imageCompression from 'browser-image-compression';
 import { UserInfoContext } from '../../contexts/UserInfoContext';
@@ -22,36 +20,45 @@ export default function FreeBoardEdit() {
   const navigate = useNavigate();
   const db = getFirestore();
   const storage = getStorage();
-  const { user } = useContext(UserInfoContext);
+  const { user, userData, loading } = useContext(UserInfoContext);
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [existingImages, setExistingImages] = useState([]); // 기존 이미지 URL들
-  const [newImages, setNewImages] = useState([]); // 새로 추가할 이미지 파일들
-  const [loading, setLoading] = useState(true);
+  const [existingImages, setExistingImages] = useState([]);
+  const [newImages, setNewImages] = useState([]);
+  const [loadingPost, setLoadingPost] = useState(true);
 
   useEffect(() => {
+    if (loading || !userData) return;
+
     const fetchPost = async () => {
-      const docRef = doc(db, 'community', 'free', 'posts', id);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (user?.email !== data.author) {
-          alert('작성자만 수정할 수 있습니다.');
+      try {
+        const docRef = doc(db, 'community', 'free', 'posts', id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (userData?.nickname !== data.author) {
+            alert('작성자만 수정할 수 있습니다.');
+            navigate(-1);
+            return;
+          }
+          setTitle(data.title);
+          setContent(data.content);
+          setExistingImages(data.images || []);
+          setLoadingPost(false);
+        } else {
+          alert('게시글을 찾을 수 없습니다.');
           navigate(-1);
-          return;
         }
-        setTitle(data.title);
-        setContent(data.content);
-        setExistingImages(data.images || []);
-        setLoading(false);
-      } else {
-        alert('게시글을 찾을 수 없습니다.');
+      } catch (err) {
+        console.error('🔥 게시글 로딩 오류:', err);
+        alert('게시글을 불러오는 중 오류가 발생했습니다.');
         navigate(-1);
       }
     };
+
     fetchPost();
-  }, [db, id, user, navigate]);
+  }, [db, id, userData, navigate, loading]);
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
@@ -60,6 +67,10 @@ export default function FreeBoardEdit() {
       return;
     }
     setNewImages((prev) => [...prev, ...files]);
+  };
+
+  const handleDeleteNewImage = (index) => {
+    setNewImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleDeleteExistingImage = (url) => {
@@ -83,29 +94,28 @@ export default function FreeBoardEdit() {
             useWebWorker: true,
           };
           const compressed = await imageCompression(image, options);
-          const storageRef = ref(storage, `freeboard/${Date.now()}_${image.name}`);
+          const safeName = encodeURIComponent(image.name.replace(/\s+/g, '_'));
+          const storageRef = ref(storage, `freeboard/${Date.now()}_${safeName}`);
           await uploadBytes(storageRef, compressed);
           return await getDownloadURL(storageRef);
         })
       );
 
-      const updatedDoc = {
+      await updateDoc(doc(db, 'community', 'free', 'posts', id), {
         title,
         content,
         images: [...existingImages, ...newImageUrls],
-      };
-
-      await updateDoc(doc(db, 'community', 'free', 'posts', id), updatedDoc);
+      });
 
       alert('수정 완료!');
       navigate(`/community/free/${id}`);
     } catch (err) {
-      console.error('수정 실패:', err);
+      console.error('🔥 게시글 수정 실패:', err);
       alert('게시글 수정 중 오류가 발생했습니다.');
     }
   };
 
-  if (loading) return <div className="text-center mt-10">로딩 중...</div>;
+  if (loading || loadingPost) return <div className="text-center mt-10">로딩 중...</div>;
 
   return (
     <div className="max-w-4xl mx-auto mt-10 px-4">
@@ -125,7 +135,6 @@ export default function FreeBoardEdit() {
           required
         />
 
-        {/* 기존 이미지 목록 */}
         {existingImages.length > 0 && (
           <div>
             <p className="font-semibold mb-2">기존 이미지</p>
@@ -138,7 +147,7 @@ export default function FreeBoardEdit() {
                     onClick={() => handleDeleteExistingImage(url)}
                     className="absolute top-1 right-1 bg-red-500 text-white text-xs px-2 py-1 rounded"
                   >
-                    삭제
+                    ❌
                   </button>
                 </div>
               ))}
@@ -146,7 +155,6 @@ export default function FreeBoardEdit() {
           </div>
         )}
 
-        {/* 새 이미지 추가 */}
         <div>
           <label className="block mb-2 font-semibold">새 이미지 추가 (최대 5장)</label>
           <input
@@ -156,6 +164,20 @@ export default function FreeBoardEdit() {
             onChange={handleImageChange}
             className="block"
           />
+          <div className="flex flex-wrap gap-2 mt-2">
+            {newImages.map((img, idx) => (
+              <div key={idx} className="flex items-center gap-1 text-sm text-gray-700 bg-gray-100 px-2 py-1 rounded">
+                <span>📷 {img.name}</span>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteNewImage(idx)}
+                  className="text-red-600 hover:underline"
+                >
+                  ❌
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
 
         <button type="submit" className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">
