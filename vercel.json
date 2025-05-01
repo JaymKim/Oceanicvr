@@ -3,6 +3,21 @@
     {
       "source": "/googled08a7dcf6f8e449e.html",
       "destination": "/googled08a7dcf6f8e449e.html"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/sitemap.xml"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/xml"
+        }
+      ]
     }
   ]
 }
