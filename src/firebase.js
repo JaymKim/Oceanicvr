@@ -5,13 +5,13 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage'; // ✅ 스토리지 추가
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAFntOsnimhiBnCJAF6AsflDHmBhWhraoc",
-  authDomain: "oceanic-vr-dive.firebaseapp.com",
-  projectId: "oceanic-vr-dive",
-  storageBucket: "oceanic-vr-dive.firebasestorage.app", // ✅ 여기 수정 중요!!!
-  messagingSenderId: "907684558679",
-  appId: "1:907684558679:web:d46079730c3dfaa4d3f012",
-  measurementId: "G-HKZP6HF4DZ"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET, // ✅ 여기 수정 중요!!!
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = initializeApp(firebaseConfig);
